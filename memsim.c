@@ -1,12 +1,14 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h> 
+#include <limits.h>
 
 
 typedef struct {
         int pageNo;
         int modified;
 } page;
-enum    repl { random, fifo, lru, clock};
+enum repl { REPL_RAND, REPL_FIFO, REPL_LRU, REPL_CLOCK };
 int     createMMU( int);
 int     checkInMemory( int ) ;
 int     allocateFrame( int ) ;
@@ -14,45 +16,146 @@ page    selectVictim( int, enum repl) ;
 const   int pageoffset = 12;            /* Page size is fixed to 4 KB */
 int     numFrames ;
 
+
+typedef struct {
+	int  pageNum;                		// resident page number
+	int  loaded;                 		// 0/1: is a page loaded
+    int  modified;              		// 0/1: dirty bit
+    int  reference;                 	// REPL_CLOCK reference bit
+    unsigned long long arrival_time;   	// for REPL_FIFO
+    unsigned long long last_used; 		// for REPL_LRU
+} frame;
+
+static frame *frame_table = NULL;          	// frame table
+static int    mmu_num_frames = 0;
+static int    next_free   = 0;        	// index of next unused frame
+static int    clock_h  = 0;        	// for REPL_CLOCK algorithm
+static unsigned long long current_tick = 0; 	// counter (REPL_LRU/REPL_FIFO)
+
 /* Creates the page table structure to record memory allocation */
 int     createMMU (int frames)
 {
+	srand(1); 
 
-        // to do
+	if (frame_table)
+	{
+		// If frame table already exists, free previous frame table for re-initiation.
+		free(frame_table);
+		frame_table = NULL;
+	}
 
-        return 0;
+	frame_table = (frame *)calloc((size_t)frames, sizeof(frame));
+
+	mmu_num_frames 	= frames;
+    next_free      	= 0;
+    clock_h    		= 0;
+    current_tick	= 0;
+
+    return 0;
 }
 
 /* Checks for residency: returns frame no or -1 if not found */
 int     checkInMemory( int page_number)
-{
-        int     result = -1;
-
-        // to do
-
-
-        return result ;
+{   
+	for (int i = 0; i < mmu_num_frames; i++)
+	{
+		if (frame_table[i].loaded)
+		{
+			if (frame_table[i].pageNum == page_number)
+			{
+				// There has been a hit for frame_table[i];
+				frame_table[i].last_used = ++current_tick;
+				frame_table[i].reference = 1;
+				return i;
+			}
+		}
+	}
+    return -1;
 }
 
 /* allocate page to the next free frame and record where it put it */
 int     allocateFrame( int page_number)
 {
-        // to do
-        return;
+    if (next_free >= mmu_num_frames) 
+	{
+		return -1; // no frames left
+	}
+
+	int unused_frame = next_free++;
+
+	frame_table[unused_frame].loaded 		= 1;
+	frame_table[unused_frame].pageNum       = page_number;
+    frame_table[unused_frame].modified      = 0;
+    frame_table[unused_frame].reference     = 1;
+    frame_table[unused_frame].arrival_time  = ++current_tick;
+    frame_table[unused_frame].last_used     = current_tick; 
+
+    return unused_frame;
+}
+
+static int lru()
+{
+	int result = -1;
+
+	for (int i = 0; i < mmu_num_frames; i++)
+	{
+		if (result == -1 || frame_table[i].last_used < frame_table[result].last_used)
+		{
+			result = i;
+		}
+	}
+	return result;
+}
+
+static int fifo() 
+{
+	return 0;
+}
+
+static int rando()
+{
+	return 0;
+}
+
+static int clock()
+{
+	return 0;
 }
 
 /* Selects a victim for eviction/discard according to the replacement algorithm,  returns chosen frame_no  */
-page    selectVictim(int page_number, enum repl  mode )
+page selectVictim(int page_number, enum repl mode)
 {
-        page    victim;
-        // to do 
-        victim.pageNo = 0;
-        victim.modified = 0;
-        return (victim) ;
+    page    victim;
+	int		result;
+
+	if (mode == REPL_LRU)
+	{
+		result = lru();
+	} else if (mode == REPL_CLOCK)
+	{
+		result = clock();
+	} else if (mode == REPL_FIFO)
+	{
+		result = fifo();
+	} else {
+		result = rando();
+	}
+    
+    victim.pageNo = frame_table[result].pageNum;
+    victim.modified = frame_table[result].modified;
+
+	frame_table[result].loaded       = 1;
+    frame_table[result].pageNum      = page_number;
+    frame_table[result].modified     = 0;
+    frame_table[result].reference    = 1;
+    frame_table[result].arrival_time = ++current_tick;
+    frame_table[result].last_used    = current_tick;
+
+    return (victim);
 }
 
 		
-main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
   
 	char	*tracename;
@@ -85,17 +188,17 @@ main(int argc, char *argv[])
             printf( "Frame number must be at least 1\n");
             exit ( -1);
         }
-        if (strcmp(argv[3], "lru\0") == 0)
-            replace = lru;
+        if (strcmp(argv[3], "REPL_LRU\0") == 0)
+            replace = REPL_LRU;
 	    else if (strcmp(argv[3], "rand\0") == 0)
-	     replace = random;
-	          else if (strcmp(argv[3], "clock\0") == 0)
-                       replace = clock;		 
-	               else if (strcmp(argv[3], "fifo\0") == 0)
-                             replace = fifo;		 
+	     replace = REPL_RAND;
+	          else if (strcmp(argv[3], "REPL_CLOCK\0") == 0)
+                       replace = REPL_CLOCK;		 
+	               else if (strcmp(argv[3], "REPL_FIFO\0") == 0)
+                             replace = REPL_FIFO;		 
         else 
 	  {
-             printf( "Replacement algorithm must be rand/fifo/lru/clock  \n");
+             printf( "Replacement algorithm must be rand/REPL_FIFO/REPL_LRU/REPL_CLOCK  \n");
              exit ( -1);
 	  }
 
@@ -153,6 +256,10 @@ main(int argc, char *argv[])
 		else if ( rw == 'W'){
 		    // mark page in page table as written - modified  
 		    if (debugmode) printf( "writting   %8d \n", page_number) ;
+			int check = checkInMemory(page_number);
+			if (check >= 0) {
+				frame_table[check].modified = 1;
+			}
 		}
 		 else {
 		      printf( "Badly formatted file. Error on line %d\n", no_events+1); 

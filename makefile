@@ -4,8 +4,10 @@ CFLAGS   := -o
 SRC      := memsim.c
 BIN      := memsim
 
-comp:
+compile:
 	$(CC) $(CFLAGS) $(BIN) $(SRC)
 
 clean:
 	rm -f $(BIN)
+
+ALL:
