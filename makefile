@@ -1,13 +1,10 @@
-CC       := gcc
-CFLAGS   := -o
-
-SRC      := memsim.c
-BIN      := memsim
+ALL: compile run clean
 
 compile:
-	$(CC) $(CFLAGS) $(BIN) $(SRC)
+	@gcc -o memsim memsim.c
+
+run: 
+	@./memsim traces/trace1 4 rand debug
 
 clean:
-	rm -f $(BIN)
-
-ALL:
+	@rm -f memsim

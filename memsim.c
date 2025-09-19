@@ -2,7 +2,7 @@
 #include <string.h>
 #include <stdlib.h> 
 #include <limits.h>
-
+#include <time.h>
 
 typedef struct {
         int pageNo;
@@ -35,8 +35,6 @@ static unsigned long long current_tick = 0; 	// counter (REPL_LRU/REPL_FIFO)
 /* Creates the page table structure to record memory allocation */
 int     createMMU (int frames)
 {
-	srand(1); 
-
 	if (frame_table)
 	{
 		// If frame table already exists, free previous frame table for re-initiation.
@@ -109,15 +107,33 @@ static int lru()
 
 static int fifo() 
 {
+	int oldest = 0;
+	for (int i=1; i<mmu_num_frames; i++) {
+		if (frame_table[i].arrival_time < frame_table[oldest].arrival_time) {
+			oldest = i;
+		}
+	}
 	return 0;
 }
 
 static int rando()
 {
-	return 0;
+	// only get frames which are loaded
+	int loadedFrames[mmu_num_frames];
+	int count = 0;
+	for (int i=0; i<mmu_num_frames; i++) {
+		if (frame_table[i].loaded) {
+			loadedFrames[count++] = i;
+		}
+	}
+
+	if (count == 0) return 0; // no loaded frames
+
+	int killIndex = rand() % count;
+	return loadedFrames[killIndex];
 }
 
-static int clock()
+static int _clock() // renamed from clock() to allow inclusion of time.h library
 {
 	return 0;
 }
@@ -133,7 +149,7 @@ page selectVictim(int page_number, enum repl mode)
 		result = lru();
 	} else if (mode == REPL_CLOCK)
 	{
-		result = clock();
+		result = _clock();
 	} else if (mode == REPL_FIFO)
 	{
 		result = fifo();
@@ -157,7 +173,8 @@ page selectVictim(int page_number, enum repl mode)
 		
 int main(int argc, char *argv[])
 {
-  
+	srand(time(NULL));
+
 	char	*tracename;
 	int	page_number,frame_no, done ;
 	int	do_line, i;
