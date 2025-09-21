@@ -219,17 +219,17 @@ int main(int argc, char *argv[])
             printf( "Frame number must be at least 1\n");
             exit ( -1);
         }
-        if (strcmp(argv[3], "REPL_LRU\0") == 0)
+        if (strcmp(argv[3], "lru\0") == 0)
             replace = REPL_LRU;
 	    else if (strcmp(argv[3], "rand\0") == 0)
 	     replace = REPL_RAND;
-	          else if (strcmp(argv[3], "REPL_CLOCK\0") == 0)
+	          else if (strcmp(argv[3], "clock\0") == 0)
                        replace = REPL_CLOCK;		 
-	               else if (strcmp(argv[3], "REPL_FIFO\0") == 0)
+	               else if (strcmp(argv[3], "fifo\0") == 0)
                              replace = REPL_FIFO;		 
         else 
 	  {
-             printf( "Replacement algorithm must be rand/REPL_FIFO/REPL_LRU/REPL_CLOCK  \n");
+             printf( "Replacement algorithm must be rand/fifo/lru/clock  \n");
              exit ( -1);
 	  }
 
