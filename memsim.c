@@ -135,7 +135,21 @@ static int rando()
 
 static int _clock() // renamed from clock() to allow inclusion of time.h library
 {
-	return 0;
+    if (mmu_num_frames == 0) return 0;
+
+    for (;;) {
+        // only consider loaded frames
+        if (frame_table[clock_h].loaded) {
+            if (frame_table[clock_h].reference == 0) {
+                int victim = clock_h;
+                clock_h = (clock_h + 1) % mmu_num_frames;
+                return victim;
+            }
+            // give a second chance
+            frame_table[clock_h].reference = 0;
+        }
+        clock_h = (clock_h + 1) % mmu_num_frames;
+    }
 }
 
 /* Selects a victim for eviction/discard according to the replacement algorithm,  returns chosen frame_no  */
