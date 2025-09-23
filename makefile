@@ -1,16 +1,8 @@
 test:
-	./memsim report-traces/bzip.trace 4 lru quiet
-	./memsim report-traces/bzip.trace 8 lru quiet
-	./memsim report-traces/bzip.trace 16 lru quiet
-	./memsim report-traces/gcc.trace 4 lru quiet
-	./memsim report-traces/gcc.trace 8 lru quiet
-	./memsim report-traces/gcc.trace 16 lru quiet
-	./memsim report-traces/sixpack.trace 4 lru quiet
-	./memsim report-traces/sixpack.trace 8 lru quiet
-	./memsim report-traces/sixpack.trace 16 lru quiet
-	./memsim report-traces/swim.trace 4 lru quiet
-	./memsim report-traces/swim.trace 8 lru quiet
-	./memsim report-traces/swim.trace 16 lru quiet
+	./memsim report-traces/bzip.trace 16 rand quiet
+	./memsim report-traces/gcc.trace 16 rand quiet
+	./memsim report-traces/sixpack.trace 16 rand quiet
+	./memsim report-traces/swim.trace 16 rand quiet
 
 ALL: compile run clean
 
